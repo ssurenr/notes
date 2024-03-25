@@ -1,0 +1,354 @@
+affinity: {}
+allowEmptyPassword: true
+allowOverrideNone: false
+apacheConfiguration: ''
+args: []
+automountServiceAccountToken: false
+autoscaling:
+  enabled: false
+  maxReplicas: 11
+  minReplicas: 1
+  targetCPU: 50
+  targetMemory: 50
+clusterDomain: cluster.local
+command: []
+commonAnnotations: {}
+commonLabels: {}
+containerPorts:
+  http: 8080
+  https: 8443
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  enabled: true
+  privileged: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1001
+  seLinuxOptions: null
+  seccompProfile:
+    type: RuntimeDefault
+customHTAccessCM: ''
+customLivenessProbe: {}
+customPostInitScripts: {}
+customReadinessProbe: {}
+customStartupProbe: {}
+diagnosticMode:
+  args:
+    - infinity
+  command:
+    - sleep
+  enabled: false
+existingApacheConfigurationConfigMap: ''
+existingSecret: ''
+existingWordPressConfigurationSecret: ''
+externalCache:
+  host: localhost
+  port: 11211
+externalDatabase:
+  database: bitnami_wordpress
+  existingSecret: ''
+  host: localhost
+  password: ''
+  port: 3306
+  user: bn_wordpress
+extraContainerPorts: []
+extraDeploy: []
+extraEnvVars: []
+extraEnvVarsCM: ''
+extraEnvVarsSecret: ''
+extraVolumeMounts: []
+extraVolumes: []
+fullnameOverride: ''
+global:
+  compatibility:
+    openshift:
+      adaptSecurityContext: disabled
+  imagePullSecrets: []
+  imageRegistry: ''
+  storageClass: ''
+hostAliases:
+  - hostnames:
+      - status.localhost
+    ip: 127.0.0.1
+htaccessPersistenceEnabled: false
+image:
+  debug: false
+  digest: ''
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+  registry: docker.io
+  repository: bitnami/wordpress
+  tag: 6.4.3-debian-12-r20
+ingress:
+  annotations: {}
+  apiVersion: ''
+  enabled: false
+  extraHosts:
+    - wordpress.45.88.80.253.sslip.io
+  extraPaths: []
+  extraRules: []
+  extraTls: []
+  hostname: wordpress.local
+  ingressClassName: 'nginx'
+  path: /
+  pathType: ImplementationSpecific
+  secrets: []
+  selfSigned: false
+  tls: false
+  tlsWwwPrefix: false
+initContainers: []
+kubeVersion: ''
+lifecycleHooks: {}
+livenessProbe:
+  enabled: true
+  failureThreshold: 6
+  httpGet:
+    httpHeaders: []
+    path: /wp-admin/install.php
+    port: '{{ .Values.wordpressScheme }}'
+    scheme: '{{ .Values.wordpressScheme | upper }}'
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+mariadb:
+  architecture: standalone
+  auth:
+    database: bitnami_wordpress
+    password: ''
+    rootPassword: ''
+    username: bn_wordpress
+  enabled: true
+  primary:
+    persistence:
+      accessModes:
+        - ReadWriteOnce
+      enabled: true
+      size: 1Gi
+      storageClass: 'longhorn'
+memcached:
+  auth:
+    enabled: false
+    existingPasswordSecret: ''
+    password: ''
+    username: ''
+  enabled: false
+  service:
+    port: 11211
+metrics:
+  containerPorts:
+    metrics: 9117
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    enabled: true
+    privileged: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 1001
+    seLinuxOptions: null
+    seccompProfile:
+      type: RuntimeDefault
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+  customStartupProbe: {}
+  enabled: false
+  image:
+    digest: ''
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+    registry: docker.io
+    repository: bitnami/apache-exporter
+    tag: 1.0.6-debian-12-r8
+  livenessProbe:
+    enabled: true
+    failureThreshold: 3
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  readinessProbe:
+    enabled: true
+    failureThreshold: 3
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 3
+  resources: {}
+  resourcesPreset: none
+  service:
+    annotations:
+      prometheus.io/port: '{{ .Values.metrics.containerPorts.metrics }}'
+      prometheus.io/scrape: 'true'
+    ports:
+      metrics: 9150
+  serviceMonitor:
+    enabled: true
+    honorLabels: false
+    interval: ''
+    jobLabel: ''
+    labels: {}
+    metricRelabelings: []
+    namespace: ''
+    relabelings: []
+    scrapeTimeout: ''
+    selector: {}
+  startupProbe:
+    enabled: false
+    failureThreshold: 15
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 1
+multisite:
+  enable: false
+  enableNipIoRedirect: false
+  host: ''
+  networkType: subdomain
+nameOverride: ''
+networkPolicy:
+  egressRules:
+    customRules: {}
+    denyConnectionsToExternal: false
+  enabled: false
+  ingress:
+    enabled: false
+    namespaceSelector: {}
+    podSelector: {}
+  ingressRules:
+    accessOnlyFrom:
+      enabled: false
+      namespaceSelector: {}
+      podSelector: {}
+    backendOnlyAccessibleByFrontend: false
+    customBackendSelector: {}
+    customRules: {}
+  metrics:
+    enabled: false
+    namespaceSelector: {}
+    podSelector: {}
+nodeAffinityPreset:
+  key: ''
+  type: ''
+  values: []
+nodeSelector: {}
+overrideDatabaseSettings: false
+pdb:
+  create: false
+  maxUnavailable: ''
+  minAvailable: 1
+persistence:
+  accessModes:
+    - ReadWriteMany
+  annotations: {}
+  dataSource: {}
+  enabled: true
+  existingClaim: ''
+  selector: {}
+  size: 1Gi
+  storageClass: 'longhorn'
+podAffinityPreset: ''
+podAnnotations: {}
+podAntiAffinityPreset: soft
+podLabels: {}
+podSecurityContext:
+  enabled: true
+  fsGroup: 1001
+  fsGroupChangePolicy: Always
+  supplementalGroups: []
+  sysctls: []
+priorityClassName: ''
+readinessProbe:
+  enabled: true
+  failureThreshold: 6
+  httpGet:
+    httpHeaders: []
+    path: /wp-login.php
+    port: '{{ .Values.wordpressScheme }}'
+    scheme: '{{ .Values.wordpressScheme | upper }}'
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+replicaCount: 1
+resources: {}
+resourcesPreset: none
+schedulerName: ''
+service:
+  annotations: {}
+  clusterIP: ''
+  externalTrafficPolicy: Cluster
+  extraPorts: []
+  httpsTargetPort: https
+  loadBalancerIP: ''
+  loadBalancerSourceRanges: []
+  nodePorts:
+    http: ''
+    https: ''
+  ports:
+    http: 80
+    https: 443
+  sessionAffinity: None
+  sessionAffinityConfig: {}
+  type: NodePort
+serviceAccount:
+  annotations: {}
+  automountServiceAccountToken: false
+  create: true
+  name: ''
+sidecars: []
+smtpExistingSecret: ''
+smtpHost: ''
+smtpPassword: ''
+smtpPort: ''
+smtpProtocol: ''
+smtpUser: ''
+startupProbe:
+  enabled: false
+  failureThreshold: 6
+  httpGet:
+    httpHeaders: []
+    path: /wp-login.php
+    port: '{{ .Values.wordpressScheme }}'
+    scheme: '{{ .Values.wordpressScheme | upper }}'
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+terminationGracePeriodSeconds: ''
+tolerations: []
+topologySpreadConstraints: []
+updateStrategy:
+  type: RollingUpdate
+volumePermissions:
+  containerSecurityContext:
+    runAsUser: 0
+    seLinuxOptions: null
+  enabled: false
+  image:
+    digest: ''
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+    registry: docker.io
+    repository: bitnami/os-shell
+    tag: 12-debian-12-r16
+  resources: {}
+  resourcesPreset: none
+wordpressBlogName: Surendhar's Blog!
+wordpressConfiguration: ''
+wordpressConfigureCache: false
+wordpressEmail: suren@ebi.ac.uk
+wordpressExtraConfigContent: ''
+wordpressFirstName: Surendhar
+wordpressLastName: Ravichandran
+wordpressPassword: ''
+wordpressPlugins: none
+wordpressScheme: http
+wordpressSkipInstall: true
+wordpressTablePrefix: wp_
+wordpressUsername: suren
