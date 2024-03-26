@@ -48,12 +48,12 @@ externalCache:
   host: localhost
   port: 11211
 externalDatabase:
-  database: bitnami_wordpress
+  database: wordpress
   existingSecret: ''
-  host: localhost
-  password: ''
+  host: db-mariadb-galera.wordpress.svc
+  password: wp_password
   port: 3306
-  user: bn_wordpress
+  user: wp_user
 extraContainerPorts: []
 extraDeploy: []
 extraEnvVars: []
@@ -85,13 +85,12 @@ image:
 ingress:
   annotations: {}
   apiVersion: ''
-  enabled: false
-  extraHosts:
-    - wordpress.45.88.80.253.sslip.io
+  enabled: true
+  extraHosts: []
   extraPaths: []
   extraRules: []
   extraTls: []
-  hostname: wordpress.local
+  hostname: wordpress.45.88.80.253.sslip.io
   ingressClassName: 'nginx'
   path: /
   pathType: ImplementationSpecific
@@ -121,7 +120,7 @@ mariadb:
     password: ''
     rootPassword: ''
     username: bn_wordpress
-  enabled: true
+  enabled: false
   primary:
     persistence:
       accessModes:
@@ -275,7 +274,7 @@ readinessProbe:
   periodSeconds: 10
   successThreshold: 1
   timeoutSeconds: 5
-replicaCount: 1
+replicaCount: 2
 resources: {}
 resourcesPreset: none
 schedulerName: ''
