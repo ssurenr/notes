@@ -31,17 +31,17 @@
 
 ## Access Details
 
-| Component                                 | Details                                                                                                                                                    |
-|-------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Rancher                                   | URL: [`https://45.88.80.253`]()                                                                                                                            |
-|                                           | Username: `admin`                                                                                                                                          |
-|                                           | Password: `qodweg-semte2-Cibtyd`                                                                                                                           |
-| Kubernetes Cluster Name                   | Demo                                                                                                                                                       |
-| Kubernetes Dashboard                      | [`https://45.88.80.253/dashboard/c/c-m-4nr6hwr7/explorer#cluster-events`]()                                                                                |
-| Helm Releases for wordpress deployment    | [`https://45.88.80.253/dashboard/c/c-m-4nr6hwr7/apps/catalog.cattle.io.app`]()                                                                             |
-| Reverse Proxy URL for external monitoring | [`http://wordpress.45.88.80.253.sslip.io:8080`]()                                                                                                          |
-| Uptime Robot Status Page                  | [`https://stats.uptimerobot.com/Y1wd118u9X`]()                                                                                                             |
-| Grafana Dashboards                        | [`https://45.88.80.253/k8s/clusters/c-m-4nr6hwr7/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/?orgId=1`]() | 
+| Component                                 | Details                                                                                                                                                                                                                                                                                                        |
+|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Rancher                                   | URL: [`https://45.88.80.253`](https://45.88.80.253)                                                                                                                                                                                                                                                            |
+|                                           | Username: `admin`                                                                                                                                                                                                                                                                                              |
+|                                           | Password: `qodweg-semte2-Cibtyd`                                                                                                                                                                                                                                                                               |
+| Kubernetes Cluster Name                   | Demo                                                                                                                                                                                                                                                                                                           |
+| Kubernetes Dashboard                      | [`https://45.88.80.253/dashboard/c/c-m-4nr6hwr7/explorer#cluster-events`](https://45.88.80.253/dashboard/c/c-m-4nr6hwr7/explorer#cluster-events)                                                                                                                                                               |
+| Helm Releases for wordpress deployment    | [`https://45.88.80.253/dashboard/c/c-m-4nr6hwr7/apps/catalog.cattle.io.app`](https://45.88.80.253/dashboard/c/c-m-4nr6hwr7/apps/catalog.cattle.io.app)                                                                                                                                                         |
+| Reverse Proxy URL for external monitoring | [`http://wordpress.45.88.80.253.sslip.io:8080`](http://wordpress.45.88.80.253.sslip.io:8080)                                                                                                                                                                                                                   |
+| Uptime Robot Status Page                  | [`https://stats.uptimerobot.com/Y1wd118u9X`](https://stats.uptimerobot.com/Y1wd118u9X)                                                                                                                                                                                                                         |
+| Grafana Dashboards                        | [`https://45.88.80.253/k8s/clusters/c-m-4nr6hwr7/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/?orgId=1`](https://45.88.80.253/k8s/clusters/c-m-4nr6hwr7/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/?orgId=1) | 
 
 
 ## 1. Cluster Setup
@@ -129,7 +129,7 @@ $ docker logs rancher 2>&1 | grep "Bootstrap Password:"
 
 ### Step 2: Configure RKE2 Cluster
 
-Lets access the Rancher UI from our browser using the IP address of the bastion node [`https://45.88.80.253`](). We will
+Lets access the Rancher UI from our browser using the IP address of the bastion node [`https://45.88.80.253`](https://45.88.80.253). We will
 use the bootstrap password to initialize Rancher.
 
 Once logged in, we will create a new cluste r and select the RKE2 option. Navigate to the `Cluster Management` tab from 
@@ -483,7 +483,7 @@ export KUBECONFIG=/Users/suren/Downloads/demo.yaml
 kubectl -n wordpress port-forward service/wordpress 8080:80
 ```
 
-Now we can access the WordPress site by navigating to [`http://localhost:8080`](). After completing the inital setup
+Now we can access the WordPress site by navigating to [`http://localhost:8080`](http://localhost:8080). After completing the inital setup
 we land to the welcome page.
 
 ![Screenshot 2024-03-25 at 22.03.48.png](img%2FScreenshot%202024-03-25%20at%2022.03.48.png)
@@ -583,9 +583,9 @@ $ sudo systemctl reload nginx
 ```
 
 Now we can access the WordPress site from the external world using the URL 
-[`http://wordpress.45.88.80.253.sslip.io:8080`]().
+[`http://wordpress.45.88.80.253.sslip.io:8080`](http://wordpress.45.88.80.253.sslip.io:8080).
 
-Note: The images not loading in the WordPress site when accessed from the nginx reverse proxy. For monitoring the
+Note: The images are not loading in the WordPress site when accessed from the nginx reverse proxy. For monitoring the
 availability of the WordPress site, this is good enough. The Uptime Robot service depends upon the HTTP status code 
 returned by the site.
 
