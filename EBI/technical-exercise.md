@@ -496,7 +496,7 @@ we land to the welcome page.
 ### Step 1. Take Snapshots
 Before upgrading the cluster, let's take the snapshot of the cluster. From the Rancher UI Cluster management tab, Under 
 cluster `demo`, we can take snapshot of the cluster.
-![Screenshot 2024-03-26 at 18.17.04.png](img%2FScreenshot%202024-03-26%20at%2018.17.04.png)
+![Screenshot 2024-03-26 at 21.06.44.png](img%2FScreenshot%202024-03-26%20at%2021.06.44.png)
 Once the snapshots are takes, they can be viewed under the `Snapshots` section under the same page.
 
 ### Step 2. Set up external monitoring
