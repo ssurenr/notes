@@ -726,6 +726,6 @@ monitored using UptimeRobot.
 1. [RKE2 Documentation](https://docs.rke2.io/)
 2. [Rancher Documentation](https://rancher.com/docs/)
 3. [Longhorn Documentation](https://longhorn.io/docs/)
-4. [Wordpress Documentation](https://wordpress.org/)
+4. [Wordpress Documentation](https://wordpress.org/documentation/)
 4. [Wordpress Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/wordpress/)
 5. [MariaDB Galera Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/mariadb-galera/)
