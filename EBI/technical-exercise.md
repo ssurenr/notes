@@ -1,5 +1,34 @@
 # Kubernetes Cluster Deployment and Management with RKE2
 
+<!-- TOC -->
+* [Kubernetes Cluster Deployment and Management with RKE2](#kubernetes-cluster-deployment-and-management-with-rke2)
+  * [Access Details](#access-details)
+  * [1. Cluster Setup](#1-cluster-setup)
+    * [Gather Node Details](#gather-node-details)  
+    * [Step 1: Install Rancher on Bastion](#step-1-install-rancher-on-bastion)
+    * [Step 2: Configure RKE2 Cluster](#step-2-configure-rke2-cluster)
+    * [Step 3: Bootstrap Master Node](#step-3-bootstrap-master-node)
+    * [Step 4: Bootstrap Worker Node](#step-4-bootstrap-worker-node)
+    * [Step 5: Deploy Essential Addons](#step-5-deploy-essential-addons)
+      * [Monitoring](#monitoring)
+      * [Persistent Volume](#persistent-volume)
+  * [2. Provisioning WordPress](#2-provisioning-wordpress)
+    * [Step 1: Perform a initial deployment](#step-1-perform-a-initial-deployment)
+    * [Step 2: Scale WordPress](#step-2-scale-wordpress)
+      * [Error 1: PV mounting issue](#error-1-pv-mounting-issue)
+    * [Step 3: Access WordPress and Perform Initial Setup](#step-3-access-wordpress-and-perform-initial-setup)
+  * [3. Upgrading the cluster](#3-upgrading-the-cluster)
+    * [Step 1. Take Snapshots](#step-1-take-snapshots)
+    * [Step 2. Set up external monitoring](#step-2-set-up-external-monitoring)
+    * [Step 3. Perform the upgrade](#step-3-perform-the-upgrade)
+  * [4. Achieving Near-Zero Downtime](#4-achieving-near-zero-downtime)
+    * [Step 1. Deploy MariaDB Galera Cluster](#step-1-deploy-mariadb-galera-cluster)
+    * [Step 2. Create a database and user](#step-2-create-a-database-and-user)
+    * [Step 3. Update WordPress Helm Chart](#step-3-update-wordpress-helm-chart)
+  * [Conclusion](#conclusion)
+    * [References:](#references)
+<!-- TOC -->
+
 ## Access Details
 
 | Component                                 | Details                                                                                                                                                    |
@@ -14,7 +43,8 @@
 | Uptime Robot Status Page                  | [`https://stats.uptimerobot.com/Y1wd118u9X`]()                                                                                                             |
 | Grafana Dashboards                        | [`https://45.88.80.253/k8s/clusters/c-m-4nr6hwr7/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/?orgId=1`]() | 
 
-## Cluster Setup
+
+## 1. Cluster Setup
 
 ### Gather Node Details
 
@@ -65,12 +95,12 @@ tmpfs           794M  4.0K  794M   1% /run/user/1000
 | worker-1  | worker  | 192.168.10.97  | 4            | 8           | 80           |
 
 
-## Step 1: Install Rancher on Bastion
+### Step 1: Install Rancher on Bastion
 
 We will start by configuring Rancher on the bastion node. Rancher is a Kubernetes management platform that allows us to 
 manage and deploy Kubernetes clusters.
 
-### Install Prerequisites
+#### Install Prerequisites
 
 Install docker.
 ```shell
@@ -97,7 +127,7 @@ $ docker logs rancher 2>&1 | grep "Bootstrap Password:"
 2024/03/24 23:52:17 [INFO] Bootstrap Password: r5hf9bxhh66p4fwqdj974mnbqwnlqvlk8p6tfhgx5v2hbfl5tt5587
 ```
 
-## Step 2: Configure RKE2 Cluster
+### Step 2: Configure RKE2 Cluster
 
 Lets access the Rancher UI from our browser using the IP address of the bastion node [`https://45.88.80.253`](). We will
 use the bootstrap password to initialize Rancher.
@@ -115,7 +145,7 @@ proper node draining configuration. We will set the `Update Strategy` to the fol
 
 Let's proceed with the cluster creation.
 
-### Step 2: Bootstrap Master Node
+### Step 3: Bootstrap Master Node
 
 Once we create the `Demo` cluster, we will be provided with the `rke2` command to bootstrap the nodes. Using the
 provided command, we will bootstrap the master node.
@@ -147,7 +177,7 @@ $ curl --insecure -fL https://45.88.80.253/system-agent-install.sh | sudo  sh -s
 [INFO]  Starting/restarting rancher-system-agent.service
 ```
 
-### Step 3: Bootstrap Worker Node
+### Step 4: Bootstrap Worker Node
 
 Using the same command, we will bootstrap the worker node, except this time we will not pass `--etcd` and 
 `--controlplane` flags.
@@ -180,9 +210,11 @@ Created symlink /etc/systemd/system/multi-user.target.wants/rancher-system-agent
 
 Once the nodes are bootstrapped, we will see them in the Rancher UI under the `Nodes` section.
 
-## Step 4: Deploy Essential Addons
+Kubernetes Config file is placed under `/home/ubuntu/.kube/config` in the bastion node.
 
-### Monitoring
+### Step 5: Deploy Essential Addons
+
+#### Monitoring
 
 Let's add prometheus and grafana monitoring to the cluster. We will use the Rancher monitoring helm chart to deploy the
 monitoring stack. We can easily install the monitoring stack by navigating to the `Cluster Tools` button and then to the
@@ -194,7 +226,7 @@ Rancher will execute the following command to install the monitoring stack.
 helm upgrade --install=true --namespace=cattle-monitoring-system --timeout=10m0s --values=/home/shell/helm/values-rancher-monitoring-crd-103.0.4-up45.31.1.yaml --version=103.0.4+up45.31.1 --wait=true rancher-monitoring-crd /home/shell/helm/rancher-monitoring-crd-103.0.4-up45.31.1.tgz
 ```
 
-### Persistent Volume
+#### Persistent Volume
 In order to automate the lifecycle of the persistent volumes, we will deploy the Longhorn storage system. We will use 
 the Longhorn helm chart to deploy the storage system. Longhorn is available under the same `Cluster Tools` section.
 
@@ -209,15 +241,18 @@ are three, but we will reduce it to two. It also provides a storage class for dy
 makes life easier for the application deployment later on. Longhorn takes care of the backup and restore of the volumes
 in case of a disaster.
 
-## Step 5: Provisioning WordPress
 
-Inspect WordPress helm chart. 
+## 2. Provisioning WordPress
+
+### Step 1: Perform a initial deployment
+
+We will use bitnami WordPress helm chart for deploying. Let's start by inspecting the WordPress helm chart. 
 
 ```shell
 helm template my-release oci://registry-1.docker.io/bitnamicharts/wordpress
 ```
 
-What we are looking for?
+###### What we are looking for?
 1. What resources are being created?
 2. Is there a provision to scale the deployment?
 3. How does the chart handles liveness and readiness probes?
@@ -228,109 +263,55 @@ After reading the documentation, the following values are set in the Rancher UI 
 Chart.
 
 ```yaml
-
+mariadb:
+  enabled: true
+  primary:
+    persistence:
+      accessModes:
+        - ReadWriteOnce
+      enabled: true
+      size: 1Gi
+      storageClass: 'longhorn'
+persistence:
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+  storageClass: 'longhorn'
+service:
+  type: NodePort
+wordpressBlogName: Surendhar's Blog!
+wordpressEmail: suren@ebi.ac.uk
+wordpressFirstName: Surendhar
+wordpressLastName: Ravichandran
+wordpressSkipInstall: true
+wordpressUsername: suren
 ```
 
+This configuration provisions a Mariadb deployment in standalone mode and deploys wordpress.Rancher used the following 
+command to install the WordPress helm chart.
 ```shell
 helm install --namespace=wordpress --timeout=10m0s --values=/home/shell/helm/values-wordpress-20.1.2.yaml --version=20.1.2 --wait=true wordpress /home/shell/helm/wordpress-20.1.2.tgz
 ```
 
-### Scale WordPress
+### Step 2: Scale WordPress
 
-```shell
-helm upgrade --history-max=5 --install=true --namespace=wordpress --timeout=10m0s --values=/home/shell/helm/values-wordpress-20.1.2.yaml --version=20.1.2 --wait=true wordpress /home/shell/helm/wordpress-20.1.2.tgz
-checking 11 resources for changes
-Patch NetworkPolicy "wordpress-mariadb" in namespace wordpress
-Looks like there are no changes for ServiceAccount "wordpress-mariadb"
-Looks like there are no changes for ServiceAccount "wordpress"
-Looks like there are no changes for Secret "wordpress-mariadb"
-Looks like there are no changes for Secret "wordpress"
-Looks like there are no changes for ConfigMap "wordpress-mariadb"
-Looks like there are no changes for PersistentVolumeClaim "wordpress"
-Patch Service "wordpress-mariadb" in namespace wordpress
-Looks like there are no changes for Service "wordpress"
-Patch Deployment "wordpress" in namespace wordpress
-Patch StatefulSet "wordpress-mariadb" in namespace wordpress
-beginning wait for 11 resources with timeout of 10m0s
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
-StatefulSet is ready: wordpress/wordpress-mariadb. 1 out of 1 expected pods are ready
-Release "wordpress" has been upgraded. Happy Helming!
-NAME: wordpress
-LAST DEPLOYED: Mon Mar 25 21:09:05 2024
-NAMESPACE: wordpress
-STATUS: deployed
-REVISION: 2
-TEST SUITE: None
-NOTES:
-CHART NAME: wordpress
-CHART VERSION: 20.1.2
-APP VERSION: 6.4.3
+In order for the wordpress deployment to be highly available, we will scale the deployment to two replicas. We will add
+the following configurations to the helm chart and upgrade the deployment.
 
-** Please be patient while the chart is being deployed **
-
-Your WordPress site can be accessed through the following DNS name from within your cluster:
-
-    wordpress.wordpress.svc.cluster.local (port 80)
-
-To access your WordPress site from outside the cluster follow the steps below:
-
-1. Get the WordPress URL by running these commands:
-
-   export NODE_PORT=$(kubectl get --namespace wordpress -o jsonpath="{.spec.ports[0].nodePort}" services wordpress)
-   export NODE_IP=$(kubectl get nodes --namespace wordpress -o jsonpath="{.items[0].status.addresses[0].address}")
-   echo "WordPress URL: http://$NODE_IP:$NODE_PORT/"
-   echo "WordPress Admin URL: http://$NODE_IP:$NODE_PORT/admin"
-
-2. Open a browser and access WordPress using the obtained URL.
-
-3. Login with the following credentials below to see your blog:
-
-  echo Username: suren
-  echo Password: $(kubectl get secret --namespace wordpress wordpress -o jsonpath="{.data.wordpress-password}" | base64 -d)
-
-WARNING: There are "resources" sections in the chart not set. Using "resourcesPreset" is not recommended for production. For production installations, please set the following values according to your workload needs:
-  - resources
-+info https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-
----------------------------------------------------------------------
-SUCCESS: helm upgrade --history-max=5 --install=true --namespace=wordpress --timeout=10m0s --values=/home/shell/helm/values-wordpress-20.1.2.yaml --version=20.1.2 --wait=true wordpress /home/shell/helm/wordpress-20.1.2.tgz
----------------------------------------------------------------------
+```yaml
+replicaCount: 2
+persistence:
+  accessModes:
+    - ReadWriteMany
 ```
 
-### Errors
-
-#### NFS Installation
+#### Error 1: PV mounting issue
+When deploying the helm chart, the deployment was stuck. Upon inspecting the deployment, it was found that pods could
+not mount the volumes provided by Longhorn.
 
 ```shell
+$ kubectl -n wordpress describe deployment wordpress
+...
 Events:
   Type     Reason                  Age              From                     Message
   ----     ------                  ----             ----                     -------
@@ -343,8 +324,8 @@ Mounting command: /usr/local/sbin/nsmounter
 Mounting arguments: mount -t nfs -o vers=4.1,noresvport,timeo=600,retrans=5,softerr 10.43.155.15:/pvc-324c6fcb-7503-4193-9d87-47632c55a621 /var/lib/kubelet/plugins/kubernetes.io/csi/driver.longhorn.io/40283ba00d1768304931f96955025a27ce7f2f116a3a10e6bae83b1a443486a3/globalmount
 Output: mount: /var/lib/kubelet/plugins/kubernetes.io/csi/driver.longhorn.io/40283ba00d1768304931f96955025a27ce7f2f116a3a10e6bae83b1a443486a3/globalmount: bad option; for several filesystems (e.g. nfs, cifs) you might need a /sbin/mount.<type> helper program.
 ```
-Checked longhorn documentation. For RWX volumes, the NFS client must be installed on the nodes. Installed NFS client on 
-the master and worker nodes.
+Upon checking the longhorn documentation, For Read write many volumes, longhorn uses NFS server to provision them. 
+We need to install nfs package in all the nodes.
 
 ```shell
 $ sudo apt-get install nfs-common
@@ -425,72 +406,259 @@ No VM guests are running outdated hypervisor (qemu) binaries on this host.
 As soon as the NFS client was installed, the PVC was successfully mounted and deployment was successful.
 
 ```shell
-$ kubectl -n wordpress get pods -l app.kubernetes.io/name=wordpress
-NAME                         READY   STATUS    RESTARTS   AGE
-wordpress-65cb4497bf-49chv   1/1     Running   0          25m
-wordpress-65cb4497bf-l7cp6   1/1     Running   0          13m
-```
-
-### MariaDB Galera
-
-```shell
-helm upgrade --install db --namespace wordpress oci://registry-1.docker.io/bitnamicharts/mariadb-galera -f EBI/galera/values.yaml
-WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /Users/suren/Downloads/demo.yaml
-WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /Users/suren/Downloads/demo.yaml
-Release "db" does not exist. Installing it now.
-Pulled: registry-1.docker.io/bitnamicharts/mariadb-galera:12.0.0
-Digest: sha256:436cb97901218048687619b57e05f1ea7e87212f08adef34e340fe895e713b89
-NAME: db
-LAST DEPLOYED: Tue Mar 26 11:36:46 2024
+helm upgrade --history-max=5 --install=true --namespace=wordpress --timeout=10m0s --values=/home/shell/helm/values-wordpress-20.1.2.yaml --version=20.1.2 --wait=true wordpress /home/shell/helm/wordpress-20.1.2.tgz
+checking 11 resources for changes
+Patch NetworkPolicy "wordpress-mariadb" in namespace wordpress
+Looks like there are no changes for ServiceAccount "wordpress-mariadb"
+Looks like there are no changes for ServiceAccount "wordpress"
+Looks like there are no changes for Secret "wordpress-mariadb"
+Looks like there are no changes for Secret "wordpress"
+Looks like there are no changes for ConfigMap "wordpress-mariadb"
+Looks like there are no changes for PersistentVolumeClaim "wordpress"
+Patch Service "wordpress-mariadb" in namespace wordpress
+Looks like there are no changes for Service "wordpress"
+Patch Deployment "wordpress" in namespace wordpress
+Patch StatefulSet "wordpress-mariadb" in namespace wordpress
+beginning wait for 11 resources with timeout of 10m0s
+Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
+Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
+Deployment is not ready: wordpress/wordpress. 1 out of 2 expected pods are ready
+...
+StatefulSet is ready: wordpress/wordpress-mariadb. 1 out of 1 expected pods are ready
+Release "wordpress" has been upgraded. Happy Helming!
+NAME: wordpress
+LAST DEPLOYED: Mon Mar 25 21:09:05 2024
 NAMESPACE: wordpress
 STATUS: deployed
-REVISION: 1
+REVISION: 2
 TEST SUITE: None
 NOTES:
-CHART NAME: mariadb-galera
-CHART VERSION: 12.0.0
-APP VERSION: 11.2.3
+CHART NAME: wordpress
+CHART VERSION: 20.1.2
+APP VERSION: 6.4.3
 
 ** Please be patient while the chart is being deployed **
-Tip:
 
-  Watch the deployment status using the command:
+Your WordPress site can be accessed through the following DNS name from within your cluster:
 
-    kubectl get sts -w --namespace wordpress -l app.kubernetes.io/instance=db
+    wordpress.wordpress.svc.cluster.local (port 80)
 
-MariaDB can be accessed via port "3306" on the following DNS name from within your cluster:
+To access your WordPress site from outside the cluster follow the steps below:
 
-    db-mariadb-galera.wordpress.svc.cluster.local
+1. Get the WordPress URL by running these commands:
 
-To obtain the password for the MariaDB admin user run the following command:
+   export NODE_PORT=$(kubectl get --namespace wordpress -o jsonpath="{.spec.ports[0].nodePort}" services wordpress)
+   export NODE_IP=$(kubectl get nodes --namespace wordpress -o jsonpath="{.items[0].status.addresses[0].address}")
+   echo "WordPress URL: http://$NODE_IP:$NODE_PORT/"
+   echo "WordPress Admin URL: http://$NODE_IP:$NODE_PORT/admin"
 
-    echo "$(kubectl get secret --namespace wordpress db-mariadb-galera -o jsonpath="{.data.mariadb-root-password}" | base64 -d)"
+2. Open a browser and access WordPress using the obtained URL.
 
-To connect to your database run the following command:
+3. Login with the following credentials below to see your blog:
 
-    kubectl run db-mariadb-galera-client --rm --tty -i --restart='Never' --namespace wordpress --image docker.io/bitnami/mariadb-galera:11.2.3-debian-12-r4 --command \
-      -- mysql -h db-mariadb-galera -P 3306 -uroot -p$(kubectl get secret --namespace wordpress db-mariadb-galera -o jsonpath="{.data.mariadb-root-password}" | base64 -d) my_database
-
-To connect to your database from outside the cluster execute the following commands:
-
-    kubectl port-forward --namespace wordpress svc/db-mariadb-galera 3306:3306 &
-    mysql -h 127.0.0.1 -P 3306 -uroot -p$(kubectl get secret --namespace wordpress db-mariadb-galera -o jsonpath="{.data.mariadb-root-password}" | base64 -d) my_database
-
-To upgrade this helm chart:
-
-    helm upgrade --namespace wordpress db oci://registry-1.docker.io/bitnamicharts/mariadb-galera \
-      --set rootUser.password=$(kubectl get secret --namespace wordpress db-mariadb-galera -o jsonpath="{.data.mariadb-root-password}" | base64 -d) \
-      --set db.name=my_database \
-      --set galera.mariabackup.password=$(kubectl get secret --namespace wordpress db-mariadb-galera -o jsonpath="{.data.mariadb-galera-mariabackup-password}" | base64 -d)
-
-
-
+  echo Username: suren
+  echo Password: $(kubectl get secret --namespace wordpress wordpress -o jsonpath="{.data.wordpress-password}" | base64 -d)
 
 WARNING: There are "resources" sections in the chart not set. Using "resourcesPreset" is not recommended for production. For production installations, please set the following values according to your workload needs:
   - resources
 +info https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+
+---------------------------------------------------------------------
+SUCCESS: helm upgrade --history-max=5 --install=true --namespace=wordpress --timeout=10m0s --values=/home/shell/helm/values-wordpress-20.1.2.yaml --version=20.1.2 --wait=true wordpress /home/shell/helm/wordpress-20.1.2.tgz
+---------------------------------------------------------------------
 ```
 
+### Step 3: Access WordPress and Perform Initial Setup
+
+Login to the Rancher UI, from the `demo` cluster page, download the kubernetes config file using `Download KubeConfig`
+icon in the top right corner. There is also a direct link in the top section of this page. You can perform the steps
+from you local machines as Rancher provides a proxy for the Kube API Server and the kubernetes config file is pointing
+to the proxy URL.
+
+Once downloaded set the KUBECONFIG environment variable to the downloaded file and create a portforwarding to the
+wordpress service.
+
+```shell
+export KUBECONFIG=/Users/suren/Downloads/demo.yaml
+kubectl -n wordpress port-forward service/wordpress 8080:80
+```
+
+Now we can access the WordPress site by navigating to [`http://localhost:8080`](). After completing the inital setup
+we land to the welcome page.
+
+![Screenshot 2024-03-25 at 22.03.48.png](img%2FScreenshot%202024-03-25%20at%2022.03.48.png)
+![Screenshot 2024-03-25 at 22.05.10.png](img%2FScreenshot%202024-03-25%20at%2022.05.10.png)
+![Screenshot 2024-03-25 at 22.05.23.png](img%2FScreenshot%202024-03-25%20at%2022.05.23.png)
+
+
+## 3. Upgrading the cluster
+
+### Step 1. Take Snapshots
+Before upgrading the cluster, let's take the snapshot of the cluster. From the Rancher UI Cluster management tab, Under 
+cluster `demo`, we can take snapshot of the cluster.
+![Screenshot 2024-03-26 at 18.17.04.png](img%2FScreenshot%202024-03-26%20at%2018.17.04.png)
+Once the snapshots are takes, they can be viewed under the `Snapshots` section under the same page.
+
+### Step 2. Set up external monitoring
+In order to view the availability of the WordPress blog, let's use [UptimeRobot](https://uptimerobot.com). Since our
+nodes are in the private subnet and accessible only from the bastion node, let's enable ingress on the kubernetes
+cluster and configure a nginx service as a reverse proxy in the bastion node.
+
+Let's modify the WordPress helm chart to include the following values.
+
+```yaml
+ingress:
+  enabled: true
+  hostname: wordpress.45.88.80.253.sslip.io
+  ingressClassName: 'nginx'
+  path: /
+  pathType: ImplementationSpecific
+mariadb:
+  enabled: true
+  primary:
+    persistence:
+      accessModes:
+        - ReadWriteOnce
+      enabled: true
+      size: 1Gi
+      storageClass: 'longhorn'
+persistence:
+  accessModes:
+    - ReadWriteMany
+  size: 1Gi
+  storageClass: 'longhorn'
+replicaCount: 2
+service:
+  type: NodePort
+wordpressBlogName: Surendhar's Blog!
+wordpressEmail: suren@ebi.ac.uk
+wordpressFirstName: Surendhar
+wordpressLastName: Ravichandran
+wordpressSkipInstall: true
+wordpressUsername: suren
+```
+
+On the bastion node, we will deploy the nginx service as a reverse proxy to the nginx ingress service in the kubernetes.
+
+```shell
+$ sudo apt install nginx
+````
+
+Create a new configuration file in the `/etc/nginx/sites-available/ingress` with the following content.
+
+```nginx
+  upstream backend {
+    # Round robin balancing between two servers
+    server 192.168.10.129:80 weight=1;
+    server 192.168.10.97:80 weight=1;
+  }
+
+  server {
+    listen 8080 default_server;
+
+    # Forward all requests to the backend servers
+    location / {
+      proxy_pass http://backend;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-Port $server_port;
+    }
+  }
+ ```
+Test nginx configuration.
+```shell
+$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
+
+Enable the site and restart the nginx service.
+
+```shell
+$ sudo ln -s /etc/nginx/sites-available/ingress /etc/nginx/sites-enabled/ingress
+$ sudo systemctl reload nginx
+```
+
+Now we can access the WordPress site from the external world using the URL 
+[`http://wordpress.45.88.80.253.sslip.io:8080`]().
+
+Note: The images not loading in the WordPress site when accessed from the nginx reverse proxy. For monitoring the
+availability of the WordPress site, this is good enough. The Uptime Robot service depends upon the HTTP status code 
+returned by the site.
+
+Now, just add the external URL in Uptime Robot and we are good to monitor the availability of the WordPress site.
+
+![Screenshot 2024-03-25 at 23.13.27.png](img%2FScreenshot%202024-03-25%20at%2023.13.27.png)
+
+### Step 3. Perform the upgrade
+
+From the Rancher UI, navigate to the `Cluster Management` tab and then to the `Clusters` section, click on the details
+button for the `demo` cluster. In the pop-up menu, select, `Edit Config`, under `Basics`, we can change the Kubernetes
+version to `v1.28.0`. Click on `Save` to save the changes.
+![Screenshot 2024-03-25 at 23.34.05.png](img%2FScreenshot%202024-03-25%20at%2023.34.05.png)
+
+Now Rancher will start the upgrade process. The upgrade process can be monitored from the `demo` cluster page. Once the
+upgrade is completed, the cluster will be running on the new version.
+
+![Screenshot 2024-03-25 at 23.36.32.png](img%2FScreenshot%202024-03-25%20at%2023.36.32.png)
+
+Verify the kubectl version by running the following command.
+```shell
+$ kubectl get nodes -o wide
+NAME       STATUS   ROLES                              AGE   VERSION          INTERNAL-IP      EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION       CONTAINER-RUNTIME
+master-1   Ready    control-plane,etcd,master,worker   42h   v1.28.7+rke2r1   192.168.10.129   <none>        Ubuntu 22.04.4 LTS   5.15.0-100-generic   containerd://1.7.11-k3s2
+worker-1   Ready    worker                             42h   v1.28.7+rke2r1   192.168.10.97    <none>        Ubuntu 22.04.4 LTS   5.15.0-100-generic   containerd://1.7.11-k3s2
+```
+
+## 4. Achieving Near-Zero Downtime
+
+Upon closely watching the upgrade process, it took around 3 minutes for the mariadb pod to start up, even though its 
+persistence volume is readily available on the other node. The WordPress pods were waiting for the database connection 
+to be ready. This cause the WordPress service to be down for around 5 minutes during the cluster upgrade.
+
+Clearly, having one mariadb instance is a single point of failure. Let's fix this by moving to a mariadb galera cluster.
+
+### Step 1. Deploy MariaDB Galera Cluster
+
+Bitnami provides a helm chart for deploying MariaDB Galera Cluster. Let's inspect the helm chart to understand the
+resources created and the configurations available.
+
+```shell
+helm template my-release oci://registry-1.docker.io/bitnami/mariadb-galera
+```
+
+After checking the documentation of the helm chart, we can provision the MariaDB Galera Cluster with the following 
+values.
+
+```yaml
+global:
+  storageClass: longhorn
+persistence:
+  size: 1Gi
+replicaCount: 2
+```
+
+Deploy the MariaDB Galera Cluster using the following command.
+
+```shell
+helm upgrade --install db --namespace wordpress oci://registry-1.docker.io/bitnamicharts/mariadb-galera -f values.yaml
+```
+
+### Step 2. Create a database and user
+
+Fetch the root password for the MariaDB Galera Cluster using the following command.
+```shell
+kubectl get secret --namespace wordpress db-mariadb-galera -o jsonpath="{.data.mariadb-root-password}" | base64 -d
+```
+Login to the MariaDB Galera Cluster using the following command.
+```shell
+$ kubectl exec -it db-mariadb-galera-0 -- /bin/bash
+$ mariadb -h db-mariadb-galera.wordpress.svc -u root -p
+```
+Create a database and user for the WordPress site.
 ```mariadb
 CREATE DATABASE wordpress CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 GRANT ALL PRIVILEGES ON wordpress.* TO 'wp_user'@'%' IDENTIFIED BY 'wp_password';
@@ -498,9 +666,66 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
-References:
+### Step 3. Update WordPress Helm Chart
+
+Update the WordPress helm chart to use the MariaDB Galera Cluster. The following values are set in the Rancher UI under
+`Apps` -> `Charts` -> `WordPress` Chart.
+
+```yaml
+externalDatabase:
+  database: wordpress
+  host: db-mariadb-galera.wordpress.svc
+  password: wp_password
+  port: 3306
+  user: wp_user
+ingress:
+  enabled: true
+  hostname: wordpress.45.88.80.253.sslip.io
+  ingressClassName: 'nginx'
+  path: /
+  pathType: ImplementationSpecific
+persistence:
+  accessModes:
+    - ReadWriteMany
+  size: 1Gi
+  storageClass: 'longhorn'
+replicaCount: 2
+service:
+  type: NodePort
+wordpressBlogName: Surendhar's Blog!
+wordpressEmail: suren@ebi.ac.uk
+wordpressFirstName: Surendhar
+wordpressLastName: Ravichandran
+wordpressSkipInstall: true
+wordpressUsername: suren
+```
+
+Once the WordPress helm chart is updated, we need to repeat the initial setup.  
+
+Lets test the reliability of the service by restarting the mariadb stateful-set.
+
+```shell
+$ kubectl -n wordpress rollout restart statefulset db-mariadb-galera
+```
+
+There was a 3-second response time during the mariadb restart, but no downtime was observed in the WordPress pods and 
+UptimeRobot.
+
+![Screenshot 2024-03-26 at 20.51.19.png](img%2FScreenshot%202024-03-26%20at%2020.51.19.png)
+
+✅ **Achieved Near-Zero Downtime**
+
+## Conclusion
+
+In this exercise, we have deployed a kubernetes cluster 1.27 using RKE2. We have successfully deployed a WordPress site
+on a Kubernetes cluster using Helm Charts. We have also upgraded the cluster to 1.28 version and achieved near-zero 
+downtime by deploying a MariaDB Galera Cluster backing the WordPress site. The availability of the WordPress site was 
+monitored using UptimeRobot.
+
+### References:
 1. [RKE2 Documentation](https://docs.rke2.io/)
 2. [Rancher Documentation](https://rancher.com/docs/)
 3. [Longhorn Documentation](https://longhorn.io/docs/)
-4. [Wordpress Helm Chart]()
-5. [MariaDB Galera Helm Chart]()
+4. [Wordpress Documentation](https://wordpress.org/)
+4. [Wordpress Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/wordpress/)
+5. [MariaDB Galera Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/mariadb-galera/)
