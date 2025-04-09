@@ -1,9 +1,13 @@
 # Kubernetes Cluster Deployment and Management with RKE2
 
 <!-- TOC -->
+
 * [Kubernetes Cluster Deployment and Management with RKE2](#kubernetes-cluster-deployment-and-management-with-rke2)
+  
   * [Access Details](#access-details)
+  
   * [1. Cluster Setup](#1-cluster-setup)
+    
     * [Gather Node Details](#gather-node-details)  
     * [Step 1: Install Rancher on Bastion](#step-1-install-rancher-on-bastion)
     * [Step 2: Configure RKE2 Cluster](#step-2-configure-rke2-cluster)
@@ -12,27 +16,36 @@
     * [Step 5: Deploy Essential Addons](#step-5-deploy-essential-addons)
       * [Monitoring](#monitoring)
       * [Persistent Volume](#persistent-volume)
+  
   * [2. Provisioning WordPress](#2-provisioning-wordpress)
+    
     * [Step 1: Perform a initial deployment](#step-1-perform-a-initial-deployment)
     * [Step 2: Scale WordPress](#step-2-scale-wordpress)
       * [Error 1: PV mounting issue](#error-1-pv-mounting-issue)
     * [Step 3: Access WordPress and Perform Initial Setup](#step-3-access-wordpress-and-perform-initial-setup)
+  
   * [3. Upgrading the cluster](#3-upgrading-the-cluster)
+    
     * [Step 1. Take Snapshots](#step-1-take-snapshots)
     * [Step 2. Set up external monitoring](#step-2-set-up-external-monitoring)
     * [Step 3. Perform the upgrade](#step-3-perform-the-upgrade)
+  
   * [4. Achieving Near-Zero Downtime](#4-achieving-near-zero-downtime)
+    
     * [Step 1. Deploy MariaDB Galera Cluster](#step-1-deploy-mariadb-galera-cluster)
     * [Step 2. Create a database and user](#step-2-create-a-database-and-user)
     * [Step 3. Update WordPress Helm Chart](#step-3-update-wordpress-helm-chart)
+  
   * [Conclusion](#conclusion)
+    
     * [References:](#references)
-<!-- TOC -->
+      
+      <!-- TOC -->
 
 ## Access Details
 
 | Component                                 | Details                                                                                                                                                                                                                                                                                                        |
-|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Rancher                                   | URL: [`https://45.88.80.253`](https://45.88.80.253)                                                                                                                                                                                                                                                            |
 |                                           | Username: `admin`                                                                                                                                                                                                                                                                                              |
 |                                           | Password: `qodweg-semte2-Cibtyd`                                                                                                                                                                                                                                                                               |
@@ -41,8 +54,9 @@
 | Helm Releases for wordpress deployment    | [`https://45.88.80.253/dashboard/c/c-m-4nr6hwr7/apps/catalog.cattle.io.app`](https://45.88.80.253/dashboard/c/c-m-4nr6hwr7/apps/catalog.cattle.io.app)                                                                                                                                                         |
 | Reverse Proxy URL for external monitoring | [`http://wordpress.45.88.80.253.sslip.io:8080`](http://wordpress.45.88.80.253.sslip.io:8080)                                                                                                                                                                                                                   |
 | Uptime Robot Status Page                  | [`https://stats.uptimerobot.com/Y1wd118u9X`](https://stats.uptimerobot.com/Y1wd118u9X)                                                                                                                                                                                                                         |
-| Grafana Dashboards                        | [`https://45.88.80.253/k8s/clusters/c-m-4nr6hwr7/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/?orgId=1`](https://45.88.80.253/k8s/clusters/c-m-4nr6hwr7/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/?orgId=1) | 
+| Grafana Dashboards                        | [`https://45.88.80.253/k8s/clusters/c-m-4nr6hwr7/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/?orgId=1`](https://45.88.80.253/k8s/clusters/c-m-4nr6hwr7/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/?orgId=1) |
 
+---
 
 ## 1. Cluster Setup
 
@@ -86,28 +100,29 @@ tmpfs           5.0M     0  5.0M   0% /run/lock
 /dev/vda15      105M  6.1M   99M   6% /boot/efi
 tmpfs           794M  4.0K  794M   1% /run/user/1000
 ```
+
 ###### Node Details
 
 | Node      | Role    | IP             | CPU (number) | Memory (GB) | Storage (GB) |
-|-----------|---------|----------------|--------------|-------------|--------------|
+| --------- | ------- | -------------- | ------------ | ----------- | ------------ |
 | bastion-1 | bastion | 45.88.80.253   | 4            | 8           | 80           |
 | master-1  | master  | 192.168.10.129 | 4            | 8           | 80           |
 | worker-1  | worker  | 192.168.10.97  | 4            | 8           | 80           |
 
-
 ### Step 1: Install Rancher on Bastion
 
-We will start by configuring Rancher on the bastion node. Rancher is a Kubernetes management platform that allows us to 
-manage and deploy Kubernetes clusters.
+We will start by configuring Rancher on the bastion node. Rancher is a Kubernetes management platform that allows us to manage and deploy Kubernetes clusters.
 
 #### Install Prerequisites
 
 Install docker.
+
 ```shell
 $ sudo apt install docker.io
 ```
 
 Install kubectl and helm.
+
 ```shell
 $ sudo snap install kubectl --classic
 helm 1.29.3 from Snapcrafters✪ installed
@@ -116,12 +131,14 @@ helm 3.14.3 from Snapcrafters✪ installed
 ```
 
 Bring up the Rancher container.
+
 ```shell
 $ docker run --privileged -d --name rancher --restart=unless-stopped -p 80:80 -p 443:443 rancher/rancher:v2.8.3-rc6
 4fd5bff9f44243487146f4bb7e973d8abb27a92d8a18b8fcef1f87a2284cbb0a
 ```
 
 Get the bootstrap password for initializing Rancher.
+
 ```shell
 $ docker logs rancher 2>&1 | grep "Bootstrap Password:"
 2024/03/24 23:52:17 [INFO] Bootstrap Password: r5hf9bxhh66p4fwqdj974mnbqwnlqvlk8p6tfhgx5v2hbfl5tt5587
@@ -129,26 +146,21 @@ $ docker logs rancher 2>&1 | grep "Bootstrap Password:"
 
 ### Step 2: Configure RKE2 Cluster
 
-Lets access the Rancher UI from our browser using the IP address of the bastion node [`https://45.88.80.253`](https://45.88.80.253). We will
-use the bootstrap password to initialize Rancher.
+Lets access the Rancher UI from our browser using the IP address of the bastion node [`https://45.88.80.253`](https://45.88.80.253). We will use the bootstrap password to initialize Rancher.
 
-Once logged in, we will create a new cluste r and select the RKE2 option. Navigate to the `Cluster Management` tab from 
-the left pane, and then to `Clusters` section. On the top right corner, click on `Create`. Select the `RKE2` option and
-provide the cluster name as `Demo`.
+Once logged in, we will create a new cluste r and select the RKE2 option. Navigate to the `Cluster Management` tab from the left pane, and then to `Clusters` section. On the top right corner, click on `Create`. Select the `RKE2` option and provide the cluster name as `Demo`.
 
 For now, we will create a v1.27 cluster so that we can upgrade it to v1.28 after we deploy wordpress.
-![Screenshot 2024-03-26 at 15.47.50.png](img%2FScreenshot%202024-03-26%20at%2015.47.50.png)
+![Screenshot 2024-03-26 at 15.47.50.png](/Users/suren/workspace/notes/EBI/img/Screenshot%202024-03-26%20at%2015.47.50.png)
 
-In order for the applications to not go down during cluster maintenance it is important we configure the cluster with
-proper node draining configuration. We will set the `Update Strategy` to the following values:
-![Screenshot 2024-03-26 at 16.00.10.png](img%2FScreenshot%202024-03-26%20at%2016.00.10.png)
+In order for the applications to not go down during cluster maintenance it is important we configure the cluster with proper node draining configuration. We will set the `Update Strategy` to the following values:
+![Screenshot 2024-03-26 at 16.00.10.png](/Users/suren/workspace/notes/EBI/img/Screenshot%202024-03-26%20at%2016.00.10.png)
 
 Let's proceed with the cluster creation.
 
 ### Step 3: Bootstrap Master Node
 
-Once we create the `Demo` cluster, we will be provided with the `rke2` command to bootstrap the nodes. Using the
-provided command, we will bootstrap the master node.
+Once we create the `Demo` cluster, we will be provided with the `rke2` command to bootstrap the nodes. Using the provided command, we will bootstrap the master node.
 
 ```shell
 $ curl --insecure -fL https://45.88.80.253/system-agent-install.sh | sudo  sh -s - --server https://45.88.80.253 --label 'cattle.io/os=linux' --token x6s8w9st22jf6j9lrcbgrn2q528j5f962s6flkzdk5j9gl9gqnz2b8 --ca-checksum c8019bafeade0741fd36e31373d6cb4d43cc62146bff4df661bfb140bb8bf998 --etcd --controlplane --worker
@@ -179,8 +191,7 @@ $ curl --insecure -fL https://45.88.80.253/system-agent-install.sh | sudo  sh -s
 
 ### Step 4: Bootstrap Worker Node
 
-Using the same command, we will bootstrap the worker node, except this time we will not pass `--etcd` and 
-`--controlplane` flags.
+Using the same command, we will bootstrap the worker node, except this time we will not pass `--etcd` and `--controlplane` flags.
 
 ```shell
 curl --insecure -fL https://45.88.80.253/system-agent-install.sh | sudo  sh -s - --server https://45.88.80.253 --label 'cattle.io/os=linux' --token x6s8w9st22jf6j9lrcbgrn2q528j5f962s6flkzdk5j9gl9gqnz2b8 --ca-checksum c8019bafeade0741fd36e31373d6cb4d43cc62146bff4df661bfb140bb8bf998 --worker
@@ -216,51 +227,48 @@ Kubernetes Config file is placed under `/home/ubuntu/.kube/config` in the bastio
 
 #### Monitoring
 
-Let's add prometheus and grafana monitoring to the cluster. We will use the Rancher monitoring helm chart to deploy the
-monitoring stack. We can easily install the monitoring stack by navigating to the `Cluster Tools` button and then to the
-clicking on the `Install` button for the `Monitoring` tool. Reduce the CPU and memory to 250m and 250Mi respectively,
-considering the size of the nodes.
+Let's add prometheus and grafana monitoring to the cluster. We will use the Rancher monitoring helm chart to deploy the monitoring stack. We can easily install the monitoring stack by navigating to the `Cluster Tools` button and clicking on the `Install` button for the `Monitoring` tool. Reduce the CPU and memory to 250m and 250Mi respectively, considering the size of the nodes.
 
 Rancher will execute the following command to install the monitoring stack.
+
 ```shell
-helm upgrade --install=true --namespace=cattle-monitoring-system --timeout=10m0s --values=/home/shell/helm/values-rancher-monitoring-crd-103.0.4-up45.31.1.yaml --version=103.0.4+up45.31.1 --wait=true rancher-monitoring-crd /home/shell/helm/rancher-monitoring-crd-103.0.4-up45.31.1.tgz
+$ helm upgrade --install=true --namespace=cattle-monitoring-system --timeout=10m0s --values=/home/shell/helm/values-rancher-monitoring-crd-103.0.4-up45.31.1.yaml --version=103.0.4+up45.31.1 --wait=true rancher-monitoring-crd /home/shell/helm/rancher-monitoring-crd-103.0.4-up45.31.1.tgz
 ```
 
 #### Persistent Volume
-In order to automate the lifecycle of the persistent volumes, we will deploy the Longhorn storage system. We will use 
-the Longhorn helm chart to deploy the storage system. Longhorn is available under the same `Cluster Tools` section.
+
+In order to automate the lifecycle of the persistent volumes, we will deploy the Longhorn storage system. We will use the Longhorn helm chart to deploy the storage system. Longhorn is available under the same `Cluster Tools` section.
 
 Rancher will execute the following command to install Longhorn.
+
 ```shell
-helm upgrade --install=true --namespace=longhorn-system --timeout=10m0s --values=/home/shell/helm/values-longhorn-crd-103.2.2-up1.5.4.yaml --version=103.2.2+up1.5.4 --wait=true longhorn-crd /home/shell/helm/longhorn-crd-103.2.2-up1.5.4.tgz
+$ helm upgrade --install=true --namespace=longhorn-system --timeout=10m0s --values=/home/shell/helm/values-longhorn-crd-103.2.2-up1.5.4.yaml --version=103.2.2+up1.5.4 --wait=true longhorn-crd /home/shell/helm/longhorn-crd-103.2.2-up1.5.4.tgz
 2024-03-25T01:00:36.701468690Z Release "longhorn-crd" does not exist. Installing it now.
 ```
 
-Once advantage of Longhorn is that it automatic replication of the volumes for high availability. The default replicas
-are three, but we will reduce it to two. It also provides a storage class for dynamic provisioning of the volumes which
-makes life easier for the application deployment later on. Longhorn takes care of the backup and restore of the volumes
-in case of a disaster.
+Once advantage of Longhorn is that it automatic replication of the volumes for high availability. The default replicas are three, but we will reduce it to two. It also provides a storage class for dynamic provisioning of the volumes which makes life easier for the application deployment later on. Longhorn takes care of the backup and restore of the volumes in case of a disaster.
 
+---
 
 ## 2. Provisioning WordPress
 
 ### Step 1: Perform a initial deployment
 
-We will use bitnami WordPress helm chart for deploying. Let's start by inspecting the WordPress helm chart. 
+We will use bitnami WordPress helm chart for deploying WordPress. Let's start by inspecting the WordPress helm chart. 
 
 ```shell
-helm template my-release oci://registry-1.docker.io/bitnamicharts/wordpress
+$ helm template my-release oci://registry-1.docker.io/bitnamicharts/wordpress
 ```
 
 ###### What we are looking for?
+
 1. What resources are being created?
 2. Is there a provision to scale the deployment?
 3. How does the chart handles liveness and readiness probes?
 4. Is there a provision to specify the storage class for the PVCs?
 5. What are the default values for the chart?
 
-After reading the documentation, the following values are set in the Rancher UI under `Apps` -> `Charts` -> `WordPress`
-Chart.
+After reading the documentation, the following values are set in the Rancher UI under `Apps` -> `Charts` -> `WordPress` Chart.
 
 ```yaml
 mariadb:
@@ -287,16 +295,15 @@ wordpressSkipInstall: true
 wordpressUsername: suren
 ```
 
-This configuration provisions a Mariadb deployment in standalone mode and deploys wordpress.Rancher used the following 
-command to install the WordPress helm chart.
+This configuration provisions a Mariadb deployment in standalone mode and deploys wordpress.Rancher used the following  command to install the WordPress helm chart.
+
 ```shell
-helm install --namespace=wordpress --timeout=10m0s --values=/home/shell/helm/values-wordpress-20.1.2.yaml --version=20.1.2 --wait=true wordpress /home/shell/helm/wordpress-20.1.2.tgz
+$ helm install --namespace=wordpress --timeout=10m0s --values=/home/shell/helm/values-wordpress-20.1.2.yaml --version=20.1.2 --wait=true wordpress /home/shell/helm/wordpress-20.1.2.tgz
 ```
 
 ### Step 2: Scale WordPress
 
-In order for the wordpress deployment to be highly available, we will scale the deployment to two replicas. We will add
-the following configurations to the helm chart and upgrade the deployment.
+In order for the wordpress deployment to be highly available, we will scale the deployment to two replicas. We will add the following configurations to the helm chart and upgrade the deployment.
 
 ```yaml
 replicaCount: 2
@@ -305,9 +312,9 @@ persistence:
     - ReadWriteMany
 ```
 
-#### Error 1: PV mounting issue
-When deploying the helm chart, the deployment was stuck. Upon inspecting the deployment, it was found that pods could
-not mount the volumes provided by Longhorn.
+#### Error 1: Persistent Volume mounting issue
+
+When deploying the helm chart, the deployment was stuck. Upon inspecting the deployment, it was found that pods could not mount the volumes provided by Longhorn.
 
 ```shell
 $ kubectl -n wordpress describe deployment wordpress
@@ -324,8 +331,8 @@ Mounting command: /usr/local/sbin/nsmounter
 Mounting arguments: mount -t nfs -o vers=4.1,noresvport,timeo=600,retrans=5,softerr 10.43.155.15:/pvc-324c6fcb-7503-4193-9d87-47632c55a621 /var/lib/kubelet/plugins/kubernetes.io/csi/driver.longhorn.io/40283ba00d1768304931f96955025a27ce7f2f116a3a10e6bae83b1a443486a3/globalmount
 Output: mount: /var/lib/kubelet/plugins/kubernetes.io/csi/driver.longhorn.io/40283ba00d1768304931f96955025a27ce7f2f116a3a10e6bae83b1a443486a3/globalmount: bad option; for several filesystems (e.g. nfs, cifs) you might need a /sbin/mount.<type> helper program.
 ```
-Upon checking the longhorn documentation, For Read write many volumes, longhorn uses NFS server to provision them. 
-We need to install nfs package in all the nodes.
+
+Upon checking the longhorn documentation, For Read-Write-Many volumes, longhorn uses NFS server to provision them.  We need to install nfs package in all the nodes.
 
 ```shell
 $ sudo apt-get install nfs-common
@@ -470,39 +477,35 @@ SUCCESS: helm upgrade --history-max=5 --install=true --namespace=wordpress --tim
 
 ### Step 3: Access WordPress and Perform Initial Setup
 
-Login to the Rancher UI, from the `demo` cluster page, download the kubernetes config file using `Download KubeConfig`
-icon in the top right corner. There is also a direct link in the top section of this page. You can perform the steps
-from you local machines as Rancher provides a proxy for the Kube API Server and the kubernetes config file is pointing
-to the proxy URL.
+Login to the Rancher UI, from the `demo` cluster page, download the kubernetes config file using `Download KubeConfig` icon in the top right corner. There is also a direct link in the top section of this page. You can perform the steps from you local machines as Rancher provides a proxy for the Kube API Server and the kubernetes config file is pointing to the proxy URL.
 
-Once downloaded set the KUBECONFIG environment variable to the downloaded file and create a portforwarding to the
-wordpress service.
+Once downloaded set the KUBECONFIG environment variable to the downloaded file and create a portforwarding to the wordpress service.
 
 ```shell
-export KUBECONFIG=/Users/suren/Downloads/demo.yaml
-kubectl -n wordpress port-forward service/wordpress 8080:80
+$ export KUBECONFIG=/Users/suren/Downloads/demo.yaml
+$ kubectl -n wordpress port-forward service/wordpress 8080:80
 ```
 
-Now we can access the WordPress site by navigating to [`http://localhost:8080`](http://localhost:8080). After completing the inital setup
-we land to the welcome page.
+Now we can access the WordPress site by navigating to [`http://localhost:8080`](http://localhost:8080). After completing the inital setup we land to the welcome page.
 
-![Screenshot 2024-03-25 at 22.03.48.png](img%2FScreenshot%202024-03-25%20at%2022.03.48.png)
-![Screenshot 2024-03-25 at 22.05.10.png](img%2FScreenshot%202024-03-25%20at%2022.05.10.png)
-![Screenshot 2024-03-25 at 22.05.23.png](img%2FScreenshot%202024-03-25%20at%2022.05.23.png)
+![Screenshot 2024-03-25 at 22.03.48.png](/Users/suren/workspace/notes/EBI/img/Screenshot%202024-03-25%20at%2022.03.48.png)
+![Screenshot 2024-03-25 at 22.05.10.png](/Users/suren/workspace/notes/EBI/img/Screenshot%202024-03-25%20at%2022.05.10.png)
+![Screenshot 2024-03-25 at 22.05.23.png](/Users/suren/workspace/notes/EBI/img/Screenshot%202024-03-25%20at%2022.05.23.png)
 
+___
 
 ## 3. Upgrading the cluster
 
 ### Step 1. Take Snapshots
-Before upgrading the cluster, let's take the snapshot of the cluster. From the Rancher UI Cluster management tab, Under 
-cluster `demo`, we can take snapshot of the cluster.
-![Screenshot 2024-03-26 at 21.06.44.png](img%2FScreenshot%202024-03-26%20at%2021.06.44.png)
+
+Before upgrading the cluster, let's take the snapshot of the cluster. From the Rancher UI Cluster management tab, Under  cluster `demo`, we can take snapshot of the cluster.
+![Screenshot 2024-03-26 at 21.06.44.png](/Users/suren/workspace/notes/EBI/img/Screenshot%202024-03-26%20at%2021.06.44.png)
 Once the snapshots are takes, they can be viewed under the `Snapshots` section under the same page.
 
 ### Step 2. Set up external monitoring
+
 In order to view the availability of the WordPress blog, let's use [UptimeRobot](https://uptimerobot.com). Since our
-nodes are in the private subnet and accessible only from the bastion node, let's enable ingress on the kubernetes
-cluster and configure a nginx service as a reverse proxy in the bastion node.
+nodes are in the private subnet and accessible only from the bastion node, let's enable ingress on the kubernetes cluster and configure a nginx service as a reverse proxy in the bastion node.
 
 Let's modify the WordPress helm chart to include the following values.
 
@@ -542,7 +545,7 @@ On the bastion node, we will deploy the nginx service as a reverse proxy to the 
 
 ```shell
 $ sudo apt install nginx
-````
+```
 
 Create a new configuration file in the `/etc/nginx/sites-available/ingress` with the following content.
 
@@ -567,8 +570,10 @@ Create a new configuration file in the `/etc/nginx/sites-available/ingress` with
       proxy_set_header X-Forwarded-Port $server_port;
     }
   }
- ```
+```
+
 Test nginx configuration.
+
 ```shell
 $ sudo nginx -t
 nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
@@ -585,27 +590,25 @@ $ sudo systemctl reload nginx
 Now we can access the WordPress site from the external world using the URL 
 [`http://wordpress.45.88.80.253.sslip.io:8080`](http://wordpress.45.88.80.253.sslip.io:8080).
 
-Note: The images are not loading in the WordPress site when accessed from the nginx reverse proxy. For monitoring the
-availability of the WordPress site, this is good enough. The Uptime Robot service depends upon the HTTP status code 
+**Note:** The images are not loading in the WordPress site when accessed from the nginx reverse proxy. For monitoring the availability of the WordPress site, this is good enough. The Uptime Robot service depends upon the HTTP status code 
 returned by the site.
 
 Now, just add the external URL in Uptime Robot and we are good to monitor the availability of the WordPress site.
 
-![Screenshot 2024-03-25 at 23.13.27.png](img%2FScreenshot%202024-03-25%20at%2023.13.27.png)
+![Screenshot 2024-03-25 at 23.13.27.png](/Users/suren/workspace/notes/EBI/img/Screenshot%202024-03-25%20at%2023.13.27.png)
 
 ### Step 3. Perform the upgrade
 
-From the Rancher UI, navigate to the `Cluster Management` tab and then to the `Clusters` section, click on the details
-button for the `demo` cluster. In the pop-up menu, select, `Edit Config`, under `Basics`, we can change the Kubernetes
-version to `v1.28.0`. Click on `Save` to save the changes.
-![Screenshot 2024-03-25 at 23.34.05.png](img%2FScreenshot%202024-03-25%20at%2023.34.05.png)
+From the Rancher UI, navigate to the `Cluster Management` tab and then to the `Clusters` section, click on the details button for the `demo` cluster. In the pop-up menu, select, `Edit Config`, under `Basics`, we can change the Kubernetes version to `v1.28.0`. Click on `Save` to save the changes.
 
-Now Rancher will start the upgrade process. The upgrade process can be monitored from the `demo` cluster page. Once the
-upgrade is completed, the cluster will be running on the new version.
+![Screenshot 2024-03-25 at 23.34.05.png](/Users/suren/workspace/notes/EBI/img/Screenshot%202024-03-25%20at%2023.34.05.png)
 
-![Screenshot 2024-03-25 at 23.36.32.png](img%2FScreenshot%202024-03-25%20at%2023.36.32.png)
+Now Rancher will start the upgrade process. The upgrade process can be monitored from the `demo` cluster page. Once the upgrade is completed, the cluster will be running on the new version.
+
+![Screenshot 2024-03-25 at 23.36.32.png](/Users/suren/workspace/notes/EBI/img/Screenshot%202024-03-25%20at%2023.36.32.png)
 
 Verify the kubectl version by running the following command.
+
 ```shell
 $ kubectl get nodes -o wide
 NAME       STATUS   ROLES                              AGE   VERSION          INTERNAL-IP      EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION       CONTAINER-RUNTIME
@@ -613,25 +616,23 @@ master-1   Ready    control-plane,etcd,master,worker   42h   v1.28.7+rke2r1   19
 worker-1   Ready    worker                             42h   v1.28.7+rke2r1   192.168.10.97    <none>        Ubuntu 22.04.4 LTS   5.15.0-100-generic   containerd://1.7.11-k3s2
 ```
 
+---
+
 ## 4. Achieving Near-Zero Downtime
 
-Upon closely watching the upgrade process, it took around 3 minutes for the mariadb pod to start up, even though its 
-persistence volume is readily available on the other node. The WordPress pods were waiting for the database connection 
-to be ready. This cause the WordPress service to be down for around 5 minutes during the cluster upgrade.
+Upon closely watching the upgrade process, it took around 3 minutes for the mariadb pod to start up, even though its persistence volume is readily available on the other node. The WordPress pods were waiting for the database connection to be ready. This cause the WordPress service to be down for around 5 minutes during the cluster upgrade.
 
 Clearly, having one mariadb instance is a single point of failure. Let's fix this by moving to a mariadb galera cluster.
 
 ### Step 1. Deploy MariaDB Galera Cluster
 
-Bitnami provides a helm chart for deploying MariaDB Galera Cluster. Let's inspect the helm chart to understand the
-resources created and the configurations available.
+Bitnami provides a helm chart for deploying MariaDB Galera Cluster. Let's inspect the helm chart to understand the resources created and the configurations available.
 
 ```shell
 helm template my-release oci://registry-1.docker.io/bitnami/mariadb-galera
 ```
 
-After checking the documentation of the helm chart, we can provision the MariaDB Galera Cluster with the following 
-values.
+After checking the documentation of the helm chart, we can provision the MariaDB Galera Cluster with the following values.
 
 ```yaml
 global:
@@ -644,32 +645,36 @@ replicaCount: 2
 Deploy the MariaDB Galera Cluster using the following command.
 
 ```shell
-helm upgrade --install db --namespace wordpress oci://registry-1.docker.io/bitnamicharts/mariadb-galera -f values.yaml
+$ helm upgrade --install db --namespace wordpress oci://registry-1.docker.io/bitnamicharts/mariadb-galera -f values.yaml
 ```
 
 ### Step 2. Create a database and user
 
 Fetch the root password for the MariaDB Galera Cluster using the following command.
+
 ```shell
-kubectl get secret --namespace wordpress db-mariadb-galera -o jsonpath="{.data.mariadb-root-password}" | base64 -d
+$ kubectl get secret --namespace wordpress db-mariadb-galera -o jsonpath="{.data.mariadb-root-password}" | base64 -d
 ```
+
 Login to the MariaDB Galera Cluster using the following command.
+
 ```shell
 $ kubectl exec -it db-mariadb-galera-0 -- /bin/bash
 $ mariadb -h db-mariadb-galera.wordpress.svc -u root -p
 ```
+
 Create a database and user for the WordPress site.
+
 ```mariadb
-CREATE DATABASE wordpress CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-GRANT ALL PRIVILEGES ON wordpress.* TO 'wp_user'@'%' IDENTIFIED BY 'wp_password';
-FLUSH PRIVILEGES;
-EXIT;
+MariaDB [(none)]> CREATE DATABASE wordpress CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON wordpress.* TO 'wp_user'@'%' IDENTIFIED BY 'wp_password';
+MariaDB [(none)]> FLUSH PRIVILEGES;
+MariaDB [(none)]> EXIT;
 ```
 
 ### Step 3. Update WordPress Helm Chart
 
-Update the WordPress helm chart to use the MariaDB Galera Cluster. The following values are set in the Rancher UI under
-`Apps` -> `Charts` -> `WordPress` Chart.
+Update the WordPress helm chart to use the MariaDB Galera Cluster. The following values are set in the Rancher UI under `Apps` -> `Charts` -> `WordPress` Chart.
 
 ```yaml
 externalDatabase:
@@ -708,12 +713,13 @@ Lets test the reliability of the service by restarting the mariadb stateful-set.
 $ kubectl -n wordpress rollout restart statefulset db-mariadb-galera
 ```
 
-There was a 3-second response time during the mariadb restart, but no downtime was observed in the WordPress pods and 
-UptimeRobot.
+There was a 3-second response time during the mariadb restart, but no downtime was observed in the WordPress pods and UptimeRobot.
 
-![Screenshot 2024-03-26 at 20.51.19.png](img%2FScreenshot%202024-03-26%20at%2020.51.19.png)
+![Screenshot 2024-03-26 at 20.51.19.png](/Users/suren/workspace/notes/EBI/img/Screenshot%202024-03-26%20at%2020.51.19.png)
 
 ✅ **Achieved Near-Zero Downtime**
+
+---
 
 ## Conclusion
 
@@ -722,10 +728,13 @@ on a Kubernetes cluster using Helm Charts. We have also upgraded the cluster to 
 downtime by deploying a MariaDB Galera Cluster backing the WordPress site. The availability of the WordPress site was 
 monitored using UptimeRobot.
 
+---
+
 ### References:
+
 1. [RKE2 Documentation](https://docs.rke2.io/)
 2. [Rancher Documentation](https://rancher.com/docs/)
 3. [Longhorn Documentation](https://longhorn.io/docs/)
 4. [Wordpress Documentation](https://wordpress.org/documentation/)
-4. [Wordpress Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/wordpress/)
-5. [MariaDB Galera Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/mariadb-galera/)
+5. [Wordpress Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/wordpress/)
+6. [MariaDB Galera Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/mariadb-galera/)

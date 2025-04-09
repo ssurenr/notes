@@ -328,7 +328,7 @@ rootUser:
   ## Password is ignored if existingSecret is specified.
   ## ref: https://github.com/bitnami/containers/tree/main/bitnami/mariadb-galera#setting-the-root-password-on-first-run
   ##
-  password: ""
+  password: "8Pg52AH0sq"
   ## @param rootUser.forcePassword Option to force users to specify a password. That is required for 'helm upgrade' to work properly.
   ## If it is not force, a random password will be generated.
   ##
@@ -395,7 +395,7 @@ galera:
     user: mariabackup
     ## @param galera.mariabackup.password MariaBackup password. Password is ignored if existingSecret is specified.
     ##
-    password: ""
+    password: "W8cSExYOdR"
     ## @param galera.mariabackup.forcePassword Option to force users to specify a password. That is required for 'helm upgrade' to work properly.
     ## If it is not force, a random password will be generated.
     ##
